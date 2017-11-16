@@ -8,15 +8,22 @@ diagnosed_data <- read.table("Sensorless_drive_diagnosis.txt")
 #understanding the data
 
 str(diagnosed_data) 
-
+dim(diagnosed_data)
 #The data given is completely in numreric format including the target
 
 #Visualizing the data
 
+#checking the correlation between the variabes
+
 cor_data <- cor(diagnosed_data)
 
-corrplot::corrplot(cor_data,title = "correlation plot b/w the attributes")
+corrplot::corrplot(cor_data,method = "number",title = "correlation plot b/w the attributes")
 
+unique_cors <- cor_data[upper.tri(cor_data)]
+
+sum(abs(unique_cors)>0.7)
+
+write.csv(cor_data,"correlation_matrix.csv")
 #From the correlation plot there are some variables that are highly correlated
 
 plot(density(diagnosed_data$V1))
@@ -52,10 +59,43 @@ for (i in 1:49){
 
 #calcuating the descrriptive statics like mean, variance,stadard Deviation
 
-mean <- apply(diagnosed_data,2,"mean")
-median <- apply(diagnosed_data,2,"median")
+mean_data <- apply(diagnosed_data,2,"mean")
+median_data <- apply(diagnosed_data,2,"median")
+sMPLE <- sd(diagnosed_data$V1)
+std_dev_data <- apply(diagnosed_data,2, sd)
+min_val_data <- apply(diagnosed_data,2,min)
+max_val_data <- apply(diagnosed_data,2,max)
+missing_val_data <- sum(is.na(diagnosed_data));missing_val_data
 
+descrpt_stats <- data.frame(mean=mean_data,median = median_data,std_dev = std_dev_data,
+                         min_val = min_val_data,max_val = max_val_data)
+
+write.csv(descrpt_stats,"descriptive_statistics.csv")
+
+
+#Detecting outliers using boxplot
+
+scatter.smooth(diagnosed_data$V1)
+
+for (i in 1:2){
+  dev.copy(jpeg,filename=paste(names(diagnosed_data[i]),"boxplot.jpg",sep = "_"))
+  boxplot(diagnosed_data[,i],main = "diagnosed_data[i]")
+  dev.off()
+}
+
+var(diagnosed_data$V1)
+var(x=diagnosed_data$V19,y=diagnosed_data$V20)
+
+#finding the variance
+
+variance <- apply(diagnosed_data, 2,var)
+View(variance)
+variance <- data.frame(variance)
+write.csv(variance,"variance.csv")
 
 #write.csv(diagnosed_data,"org_data.csv",row.names = F)
+
+
+
 
 
