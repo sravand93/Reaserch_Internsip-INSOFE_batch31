@@ -10,6 +10,10 @@ diagnosed_data <- read.table("Sensorless_drive_diagnosis.txt")
 str(diagnosed_data) 
 dim(diagnosed_data)
 #The data given is completely in numreric format including the target
+# hence change the target variable into factor
+
+diagnosed_data$V49 <- as.factor(diagnosed_data$V49)
+str(diagnosed_data)
 
 #Visualizing the data
 
@@ -23,7 +27,7 @@ unique_cors <- cor_data[upper.tri(cor_data)]
 
 sum(abs(unique_cors)>0.7)
 
-write.csv(cor_data,"correlation_matrix.csv")
+#write.csv(cor_data,"correlation_matrix.csv")
 #From the correlation plot there are some variables that are highly correlated
 
 plot(density(diagnosed_data$V1))
@@ -47,6 +51,7 @@ for (i in 1:49){
 
 #plotting and saving of density plots for all the individual variables
 for (i in 1:49){
+  
   plot= ggplot(diagnosed_data,aes(diagnosed_data[i]))+geom_density()
   print(plot)
   dev.copy(jpeg,filename=paste(names(diagnosed_data[i]),"density_plot.jpg",sep = "_"))
@@ -54,6 +59,25 @@ for (i in 1:49){
 }
 
 #plotting the graphs between the varaibles
+
+for (i in 1:48){
+  ggplotObj <- ggplot(data = diagnosed_data,
+                    mapping = aes(x = diagnosed_data[i], y = diagnosed_data$V49))+geom_point()
+  print(ggplotObj)
+  dev.copy(jpeg,filename=paste(names(diagnosed_data[i]),"relation_plot.jpg",sep = "_"))
+  dev.off()
+}
+
+for (i in 1:48){
+  ggplotObj <- ggplot(data = diagnosed_data,
+                      mapping = aes(x = diagnosed_data[i], y = diagnosed_data$V49))+geom_line()
+  print(ggplotObj)
+  dev.copy(jpeg,filename=paste(names(diagnosed_data[i]),"relation_line_plot.jpg",sep = "_"))
+  dev.off()
+}
+
+ggplotObj <- ggplot(data = diagnosed_data,
+                    mapping = aes(x = diagnosed_data[21], y = diagnosed_data$V49))+geom_line()
 
 
 
@@ -94,6 +118,19 @@ variance <- data.frame(variance)
 write.csv(variance,"variance.csv")
 
 #write.csv(diagnosed_data,"org_data.csv",row.names = F)
+
+# Data pre-processsing:
+
+# missing values
+
+sum(is.na(diagnosed_data))
+
+# There are no missing values in the data....
+
+summary(diagnosed_data)
+?ggplot
+
+
 
 
 
