@@ -15,11 +15,17 @@ dim(diagnosed_data)
 diagnosed_data$V49 <- as.factor(diagnosed_data$V49)
 str(diagnosed_data)
 
+
+
 #Visualizing the data
 
 #checking the correlation between the variabes
 
-cor_data <- cor(diagnosed_data)
+# AS we can calculate the correlation only for the numericals
+#lets remove the targeet variable which was now converted to a categorical
+
+diagnosed_data_without_target <- subset(diagnosed_data,select = -c(49))
+cor_data <- cor(diagnosed_data_without_target)
 
 corrplot::corrplot(cor_data,method = "number",title = "correlation plot b/w the attributes")
 
@@ -79,6 +85,13 @@ for (i in 1:48){
 ggplotObj <- ggplot(data = diagnosed_data,
                     mapping = aes(x = diagnosed_data[21], y = diagnosed_data$V49))+geom_line()
 
+for (i in 1:48){
+  ggplotObj <- ggplot(data = diagnosed_data,
+                      mapping = aes(x = diagnosed_data[i], y = diagnosed_data$V49))+geom_line()
+  print(ggplotObj)
+  dev.copy(jpeg,filename=paste(names(diagnosed_data[i]),"relation_line_plot.jpg",sep = "_"))
+  dev.off()
+}
 
 
 #calcuating the descrriptive statics like mean, variance,stadard Deviation
@@ -94,7 +107,7 @@ missing_val_data <- sum(is.na(diagnosed_data));missing_val_data
 descrpt_stats <- data.frame(mean=mean_data,median = median_data,std_dev = std_dev_data,
                          min_val = min_val_data,max_val = max_val_data)
 
-write.csv(descrpt_stats,"descriptive_statistics.csv")
+#write.csv(descrpt_stats,"descriptive_statistics.csv")
 
 
 #Detecting outliers using boxplot
@@ -128,11 +141,39 @@ sum(is.na(diagnosed_data))
 # There are no missing values in the data....
 
 summary(diagnosed_data)
-?ggplot
 
 
+# standardizing all the numerical attributes
+
+library(vegan)
+diagnosed_data_without_target <- decostand(diagnosed_data_without_target,"standardize")
+str(diagnosed_data_without_target)
+summary(diagnosed_data_without_target)
+
+boxplot(diagnosed_data_without_target$V19)
+
+#####################################
+
+#Practicing ggplot
+
+###############################
+
+p <- ggplot(diagnosed_data,aes(x=diagnosed_data$V1,y=diagnosed_data$V2))
+p+geom_line(aes(color = diagnosed_data$V49))
 
 
+#install.packages("RColorBrewer")
+library(RColorBrewer)
+hist(diagnosed_data,col=brewer.pal(11,"Set3"),main="Set11 3 colors")
 
+plot(diagnosed_data)
+
+plot(diagnosed_data_without_target,col=brewer.pal(48,"Set1"))
+
+
+#install.packages("tableplot")
+
+library(tableplot)
+tableplot(diagnosed_dataZ)Z
 
 
