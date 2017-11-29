@@ -2,6 +2,8 @@
 #setting the working directory
 setwd("E:/INSOFE/Internship/Data")
 
+load("workspace.RData")
+
 #reading the data from the text file
 diagnosed_data <- read.table("Sensorless_drive_diagnosis.txt")
 
@@ -209,7 +211,7 @@ pca_final <- PCA_diagnosed_data$scores[,1:20]
 
 pca_with_target <- cbind(pca_final,diagnosed_data_target)
 
-#now splitting the pca data into train and test and validation
+#now splitting the PCA data into train and test and validation
 ind <- createDataPartition(pca_with_target$V49,p=0.6, list = F)
 pca_train <- pca_with_target[ind,]
 pca_tval <- pca_with_target[-ind,]
@@ -226,40 +228,137 @@ summary(logistic)
 prob_logistic <- predict(logistic,type ="class")
 dim(prob_logistic)
 dim(logistic$fitted.values)
+
 #plot the ROC curve to determine the cutoff from that elbow curve
 library(ROCR)
 dim(diagnosed_data_train)
 pred_log_test <- predict(logistic,diagnosed_data_valid[-49],type = "class")
 conf_mat <- table(pred_log_test,diagnosed_data_valid$V49)
 matrecs <- confusionMatrix(pred_log_test,diagnosed_data_valid$V49)
+Accuracy(pred_log_test,diagnosed_data_valid$V49)
+Recall(diagnosed_data_valid$V49,pred_log_test)
+Precision(diagnosed_data_valid$V49,pred_log_test)
+F1_Score(diagnosed_data_valid$V49,pred_log_test)
+AUC(pred_log_test,diagnosed_data_valid$V49)
 
 #logistic model building with PCA
-
 logistic_pca <- multinom(formula =V49~.,data = pca_train)
 summary(logistic_pca)
 pred_log_pca <- predict(logistic_pca,pca_val[-21],type = "class")
+
+table(pred_log_pca,pca_val$V49)
 confusionMatrix(pred_log_pca,pca_val$V49)
 head(fitted(logistic_pca))
 predicted_data <- cbind(pca_val[-21],pred_log_pca)
-dim(predicted_data)
-head(predicted_data)
 
-#trying to plot the graph
+Accuracy(pred_log_pca,pca_val$V49)
+Recall(pca_val$V49,pred_log_pca)
+Precision(pca_val$V49,pred_log_pca)
+F1_Score(pca_val$V49,pred_log_pca)
+AUC(pred_log_pca,pca_val$V49)
 
-library(reshape2)
 
-#plotting row wise data using long data format
+########Another method to calculate the metrics for a multiclass confusion matrix
+#calculating the metrics using confusion matrix
+cm <- table(pred_log_pca,pca_val$V49)
+confusionMatrix(pca_val$V49,pred_log_pca)
+library(MLmetrics)
+Precision(pca_val$V49,pred_log_pca)
+Recall(pca_val$V49,pred_log_pca)
+n  <- sum(cm)  #of instances
+nc <- nrow(cm) #of classes
+diag = diag(cm) # number of correctly classified instances per class 
+rowsums = apply(cm, 1, sum) # number of instances per class
+colsums = apply(cm, 2, sum) # number of predictions per class
+p = rowsums / n # distribution of instances over the actual classes
+q = colsums / n # distribution of instances over the predicted classes
 
-long_pred_data <- melt(predicted_data,id.vars = c("Comp.1","Comp.2","Comp.3","Comp.4",
-                                                  "Comp.5", "Comp.6","Comp.7","Comp.8",
-                                                  "Comp.9","Comp.10","Comp.11","Comp.12",
-                                                  "Comp.13","Comp.14","Comp.15","Comp.16",
-                                                  "Comp.17","Comp.18","Comp.19","Comp.20"), 
-                                                   value.name = "probability")
-head(long_pred_data)
-names(long_pred_data)
+Accuracy <- sum(diag)/n
+precision <- diag/colsums
+recall <- diag/rowsums
+f1 <- 2*precision* recall/(precision+recall)
+data.frame(precision,recall,f1)
 
-library(ggplot2)
-ggplot(long_pred_data,aes(x=Comp.10,y=probability,colour = probability))+
-  geom_line()+facet_grid(variable ~.,scales ="free")
+
+#############  Descision Trees  #################
+
+##### C50 MODEL
+
+library(C50) #used to perform c50 model 
+?C5.0
+
+model_c5.0 <- C5.0(x=diagnosed_data_train[,-49],y=diagnosed_data_train[,49])
+summary(model_c5.0)
+plot(model_c5.0)
+
+model_c5.0_val <- predict(model_c5.0,diagnosed_data_valid[,-49])
+cm <-table(model_c5.0_val,diagnosed_data_valid$V49)
+Accuracy <- sum(diag(cm))/sum(cm)
+Accuracy(model_c5.0_val,diagnosed_data_valid$V49)
+Recall(diagnosed_data_valid$V49,model_c5.0_val)
+Precision(diagnosed_data_valid$V49,model_c5.0_val)
+F1_Score(diagnosed_data_valid$V49,model_c5.0_val)
+AUC(diagnosed_data_valid$V49,model_c5.0_val)
+
+model_c5.0_test <- predict(model_c5.0,diagnosed_data_test[,-49])
+cm1 <- table(model_c5.0_test,diagnosed_data_test$V49)
+Accuracy1 <- sum(diag(cm1))/sum(cm1)
+
+model_c5.0_train <- predict(model_c5.0,diagnosed_data_train[,-49])
+cm_train <- table(model_c5.0_train,diagnosed_data_train$V49)
+Accuracy_train <- sum(diag(cm_train))/sum(cm_train)
+
+####### CART Model
+
+library(rpart)
+library(rpart.plot)
+?rpart
+
+
+model_cart <- rpart(formula = V49~.,data = diagnosed_data_train)
+summary(model_cart)
+
+model_cart_train <- predict(model_cart,diagnosed_data_train[,-49],'class')
+cnf_mat_cart_train <- table(model_cart_train,diagnosed_data_train$V49)
+accuracy_cart_train <- sum(diag(cnf_mat_cart_train))/sum(cnf_mat_cart_train)
+
+model_cart_val <- predict(model_cart,diagnosed_data_valid[,-49],'class')
+cnf_mat <- table(model_cart_val,diagnosed_data_valid$V49)
+accuracy_cart <- sum(diag(cnf_mat))/sum(cnf_mat)
+
+Accuracy(model_cart_val,diagnosed_data_valid$V49)
+Recall(diagnosed_data_valid$V49,model_cart_val)
+Precision(diagnosed_data_valid$V49,model_cart_val)
+F1_Score(diagnosed_data_valid$V49,model_cart_val)
+AUC(model_cart_val,diagnosed_data_valid$V49)
+
+###############
+
+######  KNN model
+library(class)
+model_Knn <- knn(train = diagnosed_data_train[,-49],
+                 test = diagnosed_data_valid[,-49],cl = diagnosed_data_train$V49,
+                 k=1)
+summary(model_Knn)
+conf_mat_knn_valid <- table(diagnosed_data_valid$V49,model_Knn)
+accuracy_knn_valid <- sum(diag(conf_mat_knn_valid))/sum(conf_mat_knn_valid)
+
+MLmetrics::Accuracy(model_Knn,diagnosed_data_valid$V49)
+Recall(diagnosed_data_valid$V49,model_Knn)
+Precision(diagnosed_data_valid$V49,model_Knn)
+F1_Score(diagnosed_data_valid$V49,model_Knn)
+
+#using library caret
+library(caret)
+knn_model <- knn3(V49 ~ .,data = diagnosed_data_train,k=5)
+summary(knn_model)
+
+model_knn3_train <- predict(knn_model,diagnosed_data_train[,-49],'class')
+conf_mat_KNN3_train <- table(model_knn3_train,diagnosed_data_train$V49)
+accuaracy_knn3_train <- sum(diag(conf_mat_KNN3_train))/sum(conf_mat_KNN3_train)
+
+
+model_knn3_valid <- predict(knn_model,diagnosed_data_valid[,-49],'class')
+conf_mat_knn3_valid <- table(model_knn3_valid,diagnosed_data_valid$V49)
+accuracy_knn3_valid <- sum(diag(conf_mat_knn3_valid))/sum(conf_mat_knn3_valid)
 
